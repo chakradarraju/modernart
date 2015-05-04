@@ -1,0 +1,69 @@
+<html>
+<head>
+<title></title>
+<style>
+body {
+  margin: 0;
+}
+</style>
+</head>
+<body>
+<canvas id='canvas'></canvas>
+<script src='fabric.js'></script>
+<script type='text/javascript'>
+var THRESHOLD_LENGTH = 150, MIN_LENGTH = 75, MARGIN = 5;
+var canvas = new fabric.StaticCanvas('canvas'),
+    height = window.innerHeight,
+    width = window.innerWidth,
+    queue = [],
+    processed = [];
+canvas.setHeight(height);
+canvas.setWidth(width);
+canvas.backgroundColor = 'black';
+
+queue.push(newRect(MARGIN, MARGIN, width-MARGIN, height-MARGIN));
+while(queue.length > 0 || processed.length > 100) {
+  cur = queue.pop();
+  if (canSkip(cur) || cur.height < THRESHOLD_LENGTH || cur.width < THRESHOLD_LENGTH) {
+    processed.push(cur);
+  } else {
+    if (random(2)) {
+      var w1 = MIN_LENGTH + random(cur.width - 2 * MIN_LENGTH), w2 = cur.width - w1;
+      queue.push(newRect(cur.left, cur.top, w1 - MARGIN, cur.height));
+      queue.push(newRect(cur.left + w1, cur.top, w2, cur.height));
+    } else {
+      var h1 = MIN_LENGTH + random(cur.height - 2 * MIN_LENGTH), h2 = cur.height - h1;
+      queue.push(newRect(cur.left, cur.top, cur.width, h1 - MARGIN));
+      queue.push(newRect(cur.left, cur.top + h1, cur.width, h2));
+    }
+  }
+}
+
+while(queue.length > 0) {
+  processed.push(queue.pop());
+}
+
+console.log(processed.length);
+for (var i = 0; i < processed.length; i++) {
+  canvas.add(processed[i]);
+}
+canvas.renderAll();
+
+function canSkip(rect) {
+  return rect.width < width - MARGIN && rect.height < height - MARGIN && random(10) < 2;
+}
+
+function newRect(left, top, width, height) {
+  return new fabric.Rect({left: left, top: top, fill: getRandomColor(), width: width, height: height})
+};
+
+function getRandomColor() {
+  return ['black', 'white', 'white', 'white', 'red', 'yellow', 'blue'][random(7)];
+}
+
+function random(n) {
+  return Math.floor(Math.random() * n);
+}
+</script>
+</body>
+</html>

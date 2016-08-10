@@ -1,0 +1,88 @@
+<!DOCTYPE HTML>
+<html>
+  <head>
+    <title>Nexus</title>
+  </head>
+  <body style="margin:0">
+    <canvas id='canvas'></canvas>
+    <script type='text/javascript'>
+      var REFRESH_INTERVAL = 35, MOVE_SPEED = 3;
+      var canvas = document.getElementById('canvas'),
+          id = 0;
+          ctx = canvas.getContext('2d'),
+          height = window.innerHeight,
+          width = window.innerWidth,
+          objects = [];
+      var dx = [1, 0, -1, 0], dy = [0, -1, 0, 1];
+      canvas.height = height;
+      canvas.width = width;
+      canvas.backgroundColor = 'white';
+      function rand(limit) {
+        return Math.floor(Math.random() * limit);
+      }
+      function randColor() {
+        var ret = '#', base = '0123456789ABCDEF';
+        for (var i = 0; i < 6; i++) {
+          ret += base[rand(16)];
+        }
+        return ret;
+      }
+      function remove(id) {
+        for (var i in objects) {
+          if (objects[i].id == id) objects.splice(i, 1);
+        }
+      };
+      function inScreen(i, j, x, y) {
+        return (i >= x && i <=y) || (j >= x && j <= y);
+      }
+      function Object() {
+        this.id = id++;
+        this.direction = rand(4);
+        this.color = randColor();
+        this.x = rand(width);
+        this.y = rand(height);
+        var ss = (this.direction % 2 == 0 ? width : height);
+        this.length = Math.floor(0.1 * ss + rand(Math.floor(ss * 0.5)));
+        var val = ((this.direction + 1) % 4 < 2 ? 0 : ss);
+        if (this.direction % 2 == 0) this.x = val;
+        else this.y = val;
+      }
+      Object.prototype.move = function() {
+        this.x = this.x + dx[this.direction] * MOVE_SPEED;
+        this.y = this.y + dy[this.direction] * MOVE_SPEED;
+        if ((dx[this.direction] != 0 && !inScreen(this.x, this.endX(), 0, width)) ||
+            (dy[this.direction] != 0 && !inScreen(this.y, this.endY(), 0, height))) remove(this.id);
+      };
+      Object.prototype.endX = function() {
+        return this.x - this.length * dx[this.direction];
+      };
+      Object.prototype.endY = function() {
+        return this.y - this.length * dy[this.direction];
+      };
+      Object.prototype.render = function(ctx) {
+        ctx.beginPath();
+        ctx.lineWidth = 10;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = this.color;
+        ctx.moveTo(this.x, this.y);
+        ctx.lineTo(this.endX(), this.endY());
+        ctx.stroke();
+      };
+      function newFrame() {
+        ctx.clearRect(0, 0, width, height);
+        for (var i = 0; i < objects.length; i++) {
+          objects[i].move();
+        }
+        for (var i = 0; i < objects.length; i++) {
+          objects[i].render(ctx);
+        }
+      };
+      function newLine() {
+        objects.push(new Object());
+        setTimeout(newLine, 500 + rand(2500));
+      }
+      newLine();
+      setInterval(newFrame, REFRESH_INTERVAL);
+    </script>
+  </body>
+</html>

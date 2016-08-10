@@ -1,0 +1,151 @@
+<html>
+<head>
+<title></title>
+<style>
+body {
+  margin: 0;
+}
+</style>
+</head>
+<body>
+<canvas id='canvas'></canvas>
+<script src='fabric.js'></script>
+<script type='text/javascript'>
+var THRESHOLD = 10000, MAX = 100, COLOR_DIFF = 40, BLACK = '#000000', BLACK_FREQUENCY = 15;
+var canvas = new fabric.StaticCanvas('canvas'),
+    height = window.innerHeight,
+    width = window.innerWidth,
+    queue = [],
+    processed = [];
+canvas.setHeight(height);
+canvas.setWidth(width);
+canvas.backgroundColor = 'black';
+
+var polygon = {corners: [], color: getRandomColor()};
+[0, 1, 3, 2].forEach(function(a) {
+  polygon.corners.push(newPoint([0, width][a&1], [0, height][a>1?1:0]));
+});
+queue.push(polygon);
+
+function isDone(polygon) {
+  var points = polygon, length = points.length;
+  for (var i = 0; i < length; i++) for (var j = i+1; j < length; j++) {
+    if (distSquared(points[i], points[j]) < THRESHOLD) return true;
+  }
+}
+
+function distSquared(a, b) {
+  var dx = a.x - b.x, dy = a.y - b.y;
+  return dx * dx + dy * dy;
+}
+
+function choosePointBetween(a, b) {
+  var t = Math.random();
+  return newPoint(Math.floor((1 - t) * a.x + t * b.x), Math.floor((1 - t) * a.y + t * b.y));
+}
+
+function nearbyColor(color) {
+  var randDiff = random(COLOR_DIFF), rgb = getRGB(color);
+  for (var i = 0; i < randDiff; i++) {
+    var c = random(3);
+    if (rgb[c] == 0) rgb[c]++;
+    else if (rgb[c] == 255) rgb[c]--;
+    else rgb[c] += random(2) ? 1 : -1;
+  }
+  return makeColor(rgb);
+}
+
+function getRGB(color) {
+  var val = parseInt(color.substr(1), 16), rgb = [];
+  for (var i = 0; i < 3; i++) {
+    rgb.push(val % 256);
+    val /= 256;
+  }
+  return rgb;
+}
+
+function makeColor(rgb) {
+  var val = 0;
+  while(c = rgb.pop()) val *= 256, val += c;
+  return '#' + val.toString(16);
+}
+
+function newPolygon(polygon) {
+  var points = polygon.corners;
+  var path = new fabric.Path(constructPath(points), {fill: polygon.color});
+  path.set({left: Math.min.apply(null, xArray(points)), top: Math.min.apply(null, yArray(points))});
+  return path;
+}
+
+function constructPath(points) {
+  var commands = ["M ", "L ", "L ", "L "], ret = "";
+  for (var i = 0; i < 4; i++) {
+    ret += commands[i] + toStr(points[i]);
+  }
+  return ret + 'z';
+}
+
+function toStr(point) {
+  return point.x + ' ' + point.y + ' ';
+}
+
+function xArray(points) {
+  return points.map(function(point) { return point.x; });
+}
+
+function yArray(points) {
+  return points.map(function(point) { return point.y; });
+}
+
+function newPoint(x, y) {
+  return {x: x, y: y};
+}
+
+function getRandomColor() {
+  return "#"+((1<<24)*Math.random()|0).toString(16);
+}
+
+function random(n) {
+  return Math.floor(Math.random() * n);
+}
+
+function renderCanvas() {
+  canvas.clear();
+  for (var i = 0; i < processed.length; i++) {
+    canvas.add(processed[i]);
+  }
+  for (var i = 0; i < queue.length; i++) {
+    canvas.add(newPolygon(queue[i]));
+  }
+}
+
+function breakPolygon() {
+  var cur = queue.pop(), points = cur.corners;
+  if (isDone(points)) {
+    processed.push(newPolygon(cur));
+  } else {
+    var c = random(2);
+    points.push(choosePointBetween(points[c], points[c+1]));
+    points.push(choosePointBetween(points[c+2], points[(c+3)%4]));
+    [[[0,4,5,3],[4,1,2,5]],[[0,1,4,5],[5,4,2,3]]][c].forEach(function(polygon) {
+      var newPoints = polygon.map(function(index) { return points[index]; }),
+          color = random(BLACK_FREQUENCY) ? nearbyColor(cur.color) : BLACK;
+      queue.push({corners:newPoints, color:color});
+    });
+  }
+  if (processed.length + queue.length <= MAX && queue.length > 0) {
+    breakPolygon();
+  } else {
+    while(queue.length > 0) {
+      processed.push(newPolygon(queue.pop()));
+    }
+  }
+}
+
+breakPolygon();
+renderCanvas();
+
+
+</script>
+</body>
+</html>
